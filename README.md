@@ -142,6 +142,13 @@
 
 Download the DMG from the [releases page](https://github.com/nnocte/stremio-community-v5-mac/releases), open it and drag Stremio onto Applications. Node, ffmpeg and ffprobe are bundled.
 
+> **First launch:** the app is ad-hoc signed, not notarized, so macOS shows
+> *"Apple could not verify Stremio is free of malware"* the first time you open
+> it. Click **Done**, then go to **System Settings → Privacy & Security**, scroll
+> down to the Security section and click **Open Anyway** next to the Stremio
+> message, then confirm. You only do this once; after that it opens normally.
+> A Developer ID certificate and notarization are what would remove this step.
+
 Building from source:
 
 ```bash

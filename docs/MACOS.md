@@ -41,10 +41,26 @@ Grab the DMG from the releases page, open it and drag Stremio onto
 Applications. Node, ffmpeg and ffprobe are bundled, so there is nothing else to
 install.
 
-The build is ad-hoc signed, not notarized. If macOS refuses the first launch,
-go to System Settings → Privacy & Security and click Open Anyway (older
-releases of macOS also accept right-click → Open). That step is what a
-Developer ID and notarization would remove.
+### First launch
+
+The build is ad-hoc signed, not notarized, so macOS will show something like
+*"Apple could not verify Stremio is free of malware"* the first time you open
+it. That's Gatekeeper reacting to the missing notarization ticket, not an actual
+warning about the app.
+
+To get past it: click **Done** on the dialog, open **System Settings → Privacy &
+Security**, scroll to the Security section, click **Open Anyway** next to the
+Stremio entry, and confirm. From then on it launches like any other app. On
+older macOS versions, right-clicking the app and choosing Open also works.
+
+If you'd rather avoid the click, the equivalent command is:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Stremio.app
+```
+
+A Developer ID certificate plus notarization is what removes this step for
+everyone; that needs a paid Apple Developer account, so it's not set up here.
 
 Requirements: macOS 13 or newer, Apple Silicon. Building from source on Intel
 works the same way if you have an x86_64 libmpv.

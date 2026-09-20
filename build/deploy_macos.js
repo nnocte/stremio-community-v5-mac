@@ -256,6 +256,30 @@ function buildDmg(appRoot, version) {
   fs.mkdirSync(stagingDir, { recursive: true });
   run(`ditto "${appRoot}" "${path.join(stagingDir, APP_NAME)}"`);
   fs.symlinkSync('/Applications', path.join(stagingDir, 'Applications'));
+  fs.writeFileSync(
+    path.join(stagingDir, 'Read Me (first launch).txt'),
+    [
+      'Stremio for macOS',
+      '',
+      'Drag Stremio onto the Applications folder, then launch it.',
+      '',
+      'The first launch is blocked by Gatekeeper because this build is not',
+      'notarized. macOS will say it "could not verify Stremio is free of',
+      'malware". That is the missing notarization ticket, not a real warning.',
+      '',
+      'To allow it once:',
+      '',
+      '  1. Click Done on the dialog.',
+      '  2. Open System Settings > Privacy & Security.',
+      '  3. Scroll to the Security section and click "Open Anyway".',
+      '  4. Confirm, then open Stremio again.',
+      '',
+      'Or run this in Terminal instead:',
+      '',
+      '  xattr -dr com.apple.quarantine /Applications/Stremio.app',
+      '',
+    ].join('\n')
+  );
 
   fs.rmSync(dmgPath, { force: true });
   run(
@@ -296,6 +320,10 @@ function buildPkg(appRoot, version) {
     path.join(resourcesDir, 'welcome.html'),
     `<html><body style="font-family: -apple-system, sans-serif; font-size: 13px;">` +
       `<p>This installs <b>Stremio ${version}</b> into your Applications folder.</p>` +
+      `<p><b>First launch:</b> this build is not notarized, so macOS will warn that ` +
+      `it "could not verify Stremio is free of malware". Click Done, then allow it ` +
+      `once under <b>System Settings &gt; Privacy &amp; Security &gt; Open Anyway</b>. ` +
+      `After that it opens normally.</p>` +
       `<p>Stremio is community software, not affiliated with Stremio.</p></body></html>`
   );
   fs.writeFileSync(
