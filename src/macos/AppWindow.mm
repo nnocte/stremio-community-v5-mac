@@ -285,6 +285,7 @@ static NSMenu *BuildMainMenu(ShellMenuTarget *target) {
 - (void)application:(NSApplication *) __unused application openURLs:(NSArray<NSURL *> *)urls {
   for (NSURL *url in urls) {
     std::string arg = url.isFileURL ? NsToUtf8(url.path) : NsToUtf8(url.absoluteString);
+    std::cout << "[PROTOCOL]: LaunchServices URL " << arg << std::endl;
     if (!g_isAppReady) {
       g_launchProtocol = arg;
     } else {
@@ -297,6 +298,7 @@ static NSMenu *BuildMainMenu(ShellMenuTarget *target) {
 - (void)application:(NSApplication *) __unused application openFiles:(NSArray<NSString *> *)filenames {
   for (NSString *path in filenames) {
     std::string arg = NsToUtf8(path);
+    std::cout << "[PROTOCOL]: LaunchServices file " << arg << std::endl;
     if (!g_isAppReady) {
       g_launchProtocol = arg;
     } else {
