@@ -55,7 +55,7 @@ bool URLContainsAny(const std::string &url) {
 
 bool StreamingServerResponds() {
   NSInteger status = 0;
-  NSData *data = DownloadUrlSync(@"http://127.0.0.1:11470/settings", 2.0, &status, nil);
+  NSData *data = DownloadUrlSync(Utf8ToNs(STREAMING_SERVER_URL "/settings"), 2.0, &status, nil);
   if (!data || status != 200) return false;
   // The streaming server answers with a JSON object; anything else on that port
   // is not ours to reuse.

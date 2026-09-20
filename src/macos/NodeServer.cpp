@@ -268,9 +268,9 @@ void OutputThreadProc() {
       std::string address = lineBuffer.substr(ready + 27);
       size_t end = address.find_first_of(" \r\n");
       if (end != std::string::npos) address = address.substr(0, end);
-      if (address != "http://127.0.0.1:11470") {
-        std::cout << "[NODE]: WARNING server bound to " << address
-                  << " (the web UI expects port 11470)" << std::endl;
+      if (address != STREAMING_SERVER_URL) {
+        std::cout << "[NODE]: WARNING server bound to " << address << " (the web UI expects port "
+                  << STREAMING_SERVER_PORT << ")" << std::endl;
       }
       SendServerStartedOnce();
     }
@@ -333,7 +333,8 @@ bool StartNodeServer() {
   // Reuse a streaming server that is already running (e.g. the official
   // Stremio app); the web UI cannot be pointed at another port.
   if (StreamingServerResponds()) {
-    std::cout << "[NODE]: reusing the streaming server already running on 11470" << std::endl;
+    std::cout << "[NODE]: reusing the streaming server already running on "
+              << STREAMING_SERVER_URL << std::endl;
     g_nodeRunning = true;
     g_ownedProcess = false;
     SendServerStartedOnce();

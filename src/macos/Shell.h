@@ -33,6 +33,12 @@ using json = nlohmann::json;
 #define APP_NAME "Stremio"
 #define APP_BUNDLE_ID "me.zarg.stremio.desktop"
 
+// The community web UI talks to the streaming server on this local address
+// (its StreamingServer service has the port baked in), so the shell cannot
+// relocate it. Overridable only through the UI itself, not through us.
+#define STREAMING_SERVER_PORT 11470
+#define STREAMING_SERVER_URL "http://127.0.0.1:11470"
+
 // -----------------------------------------------------------------------------
 // Paths (resolved in Shell.mm, see docs/MACOS.md)
 // -----------------------------------------------------------------------------

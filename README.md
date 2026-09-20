@@ -139,17 +139,18 @@
 > **⏳ Note:** If you have stremio-desktop v4.x.x installed make sure to uninstall it first. Otherwise there might be issues.
 
 2. 🍎 **macOS**
-- Native macOS build (WKWebView + AppKit + libmpv render API), see [docs/MACOS.md](docs/MACOS.md)
+
+Download the DMG from the [releases page](https://github.com/nnocte/stremio-community-v5-mac/releases), open it and drag Stremio onto Applications. Node, ffmpeg and ffprobe are bundled.
+
+Building from source:
 
 ```bash
-brew install mpv node cmake pkgconf
+brew install cmake pkgconf mpv node
 cmake -S . -B build-macos -DCMAKE_BUILD_TYPE=Release
 cmake --build build-macos -j8
-open build-macos/src/macos/Stremio.app
 ```
 
-- Distribution bundle: `node build/deploy_macos.js --zip` → `dist/mac/Stremio-<version>.zip`
-- Tests: `ctest --test-dir build-macos --output-on-failure`
+Details, packaging and tests: [docs/MACOS.md](docs/MACOS.md)
 
 3. 🚀 **Linux**
 - Coming soon!

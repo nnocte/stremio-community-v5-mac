@@ -924,7 +924,7 @@ void LogPageStateTick() {
   if (!g_webView) return;
   // Probe the local streaming server from the page context: on macOS this only
   // works because the UI is served from the loopback proxy (see LocalUiProxy.h).
-  [g_webView evaluateJavaScript:@"(function(){ if(!window.__probeStarted){ window.__probeStarted=true; fetch('http://127.0.0.1:11470/settings').then(function(r){window.__probe='status:'+r.status;}).catch(function(e){window.__probe='error:'+e;}); } return JSON.stringify({url: location.href, text: (document.body ? document.body.innerText.slice(0, 80) : ''), probe: window.__probe || 'pending', bodyBg: document.body ? getComputedStyle(document.body).backgroundColor : 'n/a', htmlBg: getComputedStyle(document.documentElement).backgroundColor, drawsBg: window.__drawsBg}); })()"
+  [g_webView evaluateJavaScript:@"(function(){ if(!window.__probeStarted){ window.__probeStarted=true; fetch('" STREAMING_SERVER_URL "/settings').then(function(r){window.__probe='status:'+r.status;}).catch(function(e){window.__probe='error:'+e;}); } return JSON.stringify({url: location.href, text: (document.body ? document.body.innerText.slice(0, 80) : ''), probe: window.__probe || 'pending', bodyBg: document.body ? getComputedStyle(document.body).backgroundColor : 'n/a', htmlBg: getComputedStyle(document.documentElement).backgroundColor, drawsBg: window.__drawsBg}); })()"
               completionHandler:^(id result, NSError *error) {
                 (void)error;
                 std::cout << "[WEBVIEW]: page state: "

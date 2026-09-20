@@ -118,6 +118,7 @@ void InitializeDiscord() {
   handlers.disconnected = Discord_Disconnected;
   handlers.errored = Discord_Error;
 
+  // Upstream's Discord application id; the presence only shows for this app.
   Discord_Initialize("1361448446862692492", &handlers, 1, nullptr);
 }
 
