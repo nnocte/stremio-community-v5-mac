@@ -70,28 +70,95 @@ std::string FirstExisting(const std::vector<std::string> &candidates) {
   return {};
 }
 
+// A bundled node/stremio-runtime must actually start; a copy that misses its
+// dylibs (e.g. a Homebrew node copied without the Cellar) is worse than none.
+bool IsRunnableRuntime(const std::string &path) {
+  int pipeFds[2] = {-1, -1};
+  if (::pipe(pipeFds) != 0) return false;
+
+  posix_spawn_file_actions_t actions;
+  posix_spawn_file_actions_init(&actions);
+  posix_spawn_file_actions_adddup2(&actions, pipeFds[1], STDOUT_FILENO);
+  posix_spawn_file_actions_adddup2(&actions, pipeFds[1], STDERR_FILENO);
+  posix_spawn_file_actions_addclose(&actions, pipeFds[0]);
+  posix_spawn_file_actions_addclose(&actions, pipeFds[1]);
+
+  std::vector<char *> argv;
+  argv.push_back(const_cast<char *>(path.c_str()));
+  argv.push_back(const_cast<char *>("--version"));
+  argv.push_back(nullptr);
+
+  pid_t pid = -1;
+  int spawnResult = posix_spawn(&pid, path.c_str(), &actions, nullptr, argv.data(), environ);
+  posix_spawn_file_actions_destroy(&actions);
+  ::close(pipeFds[1]);
+
+  bool ok = false;
+  if (spawnResult == 0) {
+    char buffer[64];
+    ssize_t readSize = ::read(pipeFds[0], buffer, sizeof(buffer) - 1);
+    ::close(pipeFds[0]);
+
+    for (int i = 0; i < 30; i++) { // up to 3s
+      int status = 0;
+      pid_t result = ::waitpid(pid, &status, WNOHANG);
+      if (result == pid) {
+        ok = WIFEXITED(status) && WEXITSTATUS(status) == 0 && readSize > 0;
+        break;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (!ok) {
+      ::kill(pid, SIGKILL);
+      ::waitpid(pid, nullptr, 0);
+    }
+  } else {
+    ::close(pipeFds[0]);
+  }
+  return ok;
+}
+
 // Resolves the node runtime and the server.js script. Mirrors the Windows
 // lookup order (next to the app first, then the Stremio service location) with
 // macOS equivalents.
 bool ResolveServerFiles(std::string &outRuntime, std::string &outScript) {
-  std::string runtime = FirstExisting({
-      g_resourcesDir + "/stremio-runtime",
-      g_exeDir + "/stremio-runtime",
-      "/Applications/Stremio.app/Contents/MacOS/stremio-runtime",
-  });
+  // Bundled runtimes are validated so a broken copy never shadows a working one.
+  std::string runtime;
+  for (const std::string &candidate : std::vector<std::string>{
+           g_resourcesDir + "/stremio-runtime",
+           g_exeDir + "/stremio-runtime",
+           g_exeDir + "/node", // bundled runtime (official shell layout)
+           "/Applications/Stremio.app/Contents/MacOS/stremio-runtime",
+           "/Applications/Stremio.app/Contents/MacOS/node",
+       }) {
+    if (!FileExists(candidate)) continue;
+    if (IsRunnableRuntime(candidate)) {
+      runtime = candidate;
+      break;
+    }
+    AppendToCrashLog("[NODE]: ignoring non-runnable runtime " + candidate);
+  }
+
   if (runtime.empty()) {
-    runtime = FindInPath("stremio-runtime");
+    std::string fromPath = FindInPath("stremio-runtime");
+    if (!fromPath.empty() && IsRunnableRuntime(fromPath)) {
+      runtime = fromPath;
+    }
   }
   if (runtime.empty()) {
-    runtime = FirstExisting({
+    std::string node = FirstExisting({
         FindInPath("node"),
         "/opt/homebrew/bin/node",
         "/usr/local/bin/node",
         "/usr/bin/node",
     });
+    if (!node.empty() && IsRunnableRuntime(node)) {
+      runtime = node;
+    }
   }
+
   if (runtime.empty()) {
-    AppendToCrashLog("[NODE]: No stremio-runtime or node executable found");
+    AppendToCrashLog("[NODE]: No runnable stremio-runtime or node executable found");
     return false;
   }
 

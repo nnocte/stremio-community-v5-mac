@@ -70,15 +70,28 @@ build-macos/src/macos/Stremio.app/Contents/MacOS/Stremio   # console logs
 log and the periodic page-state diagnostics. `-DDEBUG_LOG=OFF` produces the
 release configuration used by the deploy script.
 
-## Deploy
+## Install
 
 ```bash
-node build/deploy_macos.js --zip
+node build/deploy_macos.js --dmg --pkg --install
 ```
 
-Builds the bundle, downloads `server.js`, stages `node`/`ffmpeg` next to the
-executable (official shell layout), copies the default settings template,
-ad-hoc signs the app and writes `dist/mac/Stremio-<version>.zip`.
+| Flag | Result |
+| --- | --- |
+| `--dmg` | `dist/mac/Stremio-<version>.dmg` — drag Stremio onto Applications |
+| `--pkg` | `dist/mac/Stremio-<version>.pkg` — double-click installer (installs into `/Applications`) |
+| `--install` | copies the app into `/Applications` right away and registers the URL schemes |
+| `--zip` | `dist/mac/Stremio-<version>.zip` portable archive |
+
+The script builds Release, downloads `server.js`, bundles a **self-contained
+node** (official nodejs.org build, or `STREMIO_NODE_PATH`/`stremio-runtime`),
+makes `ffmpeg`/`ffprobe` relocatable with `dylibbundler` when installed
+(`brew install dylibbundler`), seeds the default settings, ad-hoc signs the
+bundle and produces the requested artifacts.
+
+> **Gatekeeper:** the bundle is ad-hoc signed, not notarized (no Developer ID
+> here). On first launch macOS may ask you to confirm: right-click the app →
+> Open, or allow it in System Settings → Privacy & Security.
 
 ## portable_config
 

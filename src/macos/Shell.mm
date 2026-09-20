@@ -173,7 +173,21 @@ void ResolveShellPaths(int argc, char *argv[]) {
       g_configDir = HomeDirectory() + "/Library/Application Support/Stremio/portable_config";
     }
   }
+  bool configExisted = IsDirectory(g_configDir);
   EnsureDirectory(g_configDir);
+
+  // First run: seed the default settings from the bundled template (the Windows
+  // distribution ships the same file as portable_config/stremio-settings.ini).
+  if (!configExisted) {
+    std::filesystem::path templateIni =
+        std::filesystem::path(g_resourcesDir) / "portable_config" / "stremio-settings.ini";
+    std::error_code copyEc;
+    if (std::filesystem::is_regular_file(templateIni, copyEc)) {
+      std::filesystem::copy_file(templateIni,
+                                 std::filesystem::path(g_configDir) / "stremio-settings.ini",
+                                 std::filesystem::copy_options::skip_existing, copyEc);
+    }
+  }
 
   std::cout << "[SHELL]: exeDir=" << g_exeDir << "\n"
             << "[SHELL]: resources=" << g_resourcesDir << "\n"

@@ -128,14 +128,28 @@ void RunAutoUpdaterOnce() {
 
       if (!std::filesystem::exists(localFilePath) ||
           Sha256File(localFilePath) != expectedChecksum) {
-        if (!DownloadUrlToFile(url, localFilePath.string(), 300)) {
+        // Download to a temporary file first: a bad download (or a stale
+        // upstream checksum) must never replace a working server.js.
+        std::filesystem::path tempFile = localFilePath;
+        tempFile += ".download";
+
+        if (!DownloadUrlToFile(url, tempFile.string(), 300)) {
           AppendToCrashLog("[UPDATER]: Failed to download server.js");
-        } else if (Sha256File(localFilePath) != expectedChecksum) {
-          AppendToCrashLog("[UPDATER]: Downloaded server.js is corrupted");
+          std::filesystem::remove(tempFile);
+        } else if (Sha256File(tempFile) != expectedChecksum) {
+          AppendToCrashLog("[UPDATER]: Downloaded server.js is corrupted (checksum mismatch)");
+          std::filesystem::remove(tempFile);
         } else {
-          std::cout << "[UPDATER]: server.js updated" << std::endl;
-          StopNodeServer();
-          StartNodeServer();
+          std::error_code renameEc;
+          std::filesystem::rename(tempFile, localFilePath, renameEc);
+          if (renameEc) {
+            AppendToCrashLog("[UPDATER]: Could not install server.js: " + renameEc.message());
+            std::filesystem::remove(tempFile);
+          } else {
+            std::cout << "[UPDATER]: server.js updated" << std::endl;
+            StopNodeServer();
+            StartNodeServer();
+          }
         }
       }
     }
