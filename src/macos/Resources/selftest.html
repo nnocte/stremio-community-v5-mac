@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Stremio shell self test</title>
+  <style>
+    body { background: #0c0b11; color: #eee; font-family: monospace; padding: 20px; }
+    .pass { color: #4ade80; }
+    .fail { color: #f87171; }
+  </style>
+</head>
+<body>
+<pre id="log"></pre>
+<script>
+// Harness that drives the real shell protocol (Qt transport wire format) and
+// verifies the native side end to end. Results are reported through the
+// "selftest-done" event.
+(function () {
+  var checks = {};
+  var logEl = document.getElementById('log');
+  var finished = false;
+
+  function log(text) {
+    logEl.textContent += text + '\n';
+    console.log('[selftest] ' + text);
+  }
+  function check(name, value) {
+    checks[name] = !!value;
+    log((value ? 'PASS ' : 'FAIL ') + name);
+  }
+  function finish() {
+    if (finished) return;
+    finished = true;
+    window.chrome.webview.postMessage(JSON.stringify({
+      type: 6,
+      object: 'transport',
+      method: 'handleInboundJSON',
+      id: 4242,
+      args: ['selftest-done', [JSON.stringify({ checks: checks })]]
+    }));
+  }
+  function send(ev, args) {
+    window.chrome.webview.postMessage(JSON.stringify({
+      type: 6,
+      object: 'transport',
+      method: 'handleInboundJSON',
+      id: 1,
+      args: [ev, args === undefined ? [] : args]
+    }));
+  }
+
+  var props = {};
+  var sawPropChange = {};
+  var initSeen = false;
+  var subtitleDropped = false;
+  var blockedSeen = false;
+
+  window.chrome.webview.addEventListener('message', function (event) {
+    var msg;
+    try { msg = JSON.parse(event.data); } catch (e) { return; }
+
+    // Init response: {id:0, data:{transport:{properties:[...]}}}
+    if (msg && msg.id === 0 && msg.data && msg.data.transport) {
+      initSeen = true;
+      var shellVersion = null;
+      (msg.data.transport.properties || []).forEach(function (prop) {
+        if (prop && prop[1] === 'shellVersion') shellVersion = prop[3];
+        if (prop && prop[1] === 'BrowserExtensions') props.BrowserExtensions = prop[3];
+      });
+      check('init-response', shellVersion !== null);
+      check('shell-version', /^\d+\.\d+\.\d+$/.test(String(shellVersion)));
+      window.chrome.webview.postMessage(JSON.stringify({
+        type: 6, object: 'transport', method: 'handleInboundJSON', id: 2, args: ['app-ready', []]
+      }));
+      setTimeout(runChecks, 500);
+      return;
+    }
+
+    // Signal messages: {type:1, object:'transport', id, args:[event, data]}
+    if (msg && msg.type === 1 && msg.object === 'transport' && msg.args) {
+      var name = msg.args[0];
+      var data = msg.args[1];
+
+      if (name === 'mpv-prop-change') {
+        sawPropChange[data.name] = true;
+        props[data.name] = data.data;
+        if (data.name === 'volume') check('observe-volume-prop', true);
+        if (data.name === 'duration' && typeof data.data === 'number' && data.data > 0) {
+          check('playback-duration', true);
+        }
+        if (data.name === 'pause' && data.data === true) {
+          check('pause-prop', true);
+        }
+      } else if (name === 'SubtitleDropped') {
+        subtitleDropped = true;
+        check('subtitle-drop', true);
+      } else if (name === 'MpvCommandBlocked') {
+        blockedSeen = true;
+        check('allowlist-blocks-unknown-command', true);
+      }
+    }
+  });
+
+  function runChecks() {
+    send('mpv-observe-prop', 'volume');
+    send('mpv-observe-prop', 'duration');
+    send('mpv-observe-prop', 'pause');
+    send('mpv-set-prop', ['volume', '33']);
+    send('mpv-command', ['evil-command-that-does-not-exist']);
+
+    setTimeout(function () {
+      check('set-volume', props.volume === 33);
+    }, 2000);
+
+    setTimeout(function () {
+      var media = window.__selftestMediaPath;
+      check('media-path-injected', typeof media === 'string' && media.length > 0);
+      send('mpv-command', ['loadfile', media]);
+    }, 2500);
+
+    // Playback checks (duration, pause) plus the native subtitle drop.
+    setTimeout(function () {
+      check('playback-started', !!sawPropChange['time-pos'] || !!sawPropChange['duration']);
+    }, 12000);
+
+    setTimeout(function () {
+      send('mpv-set-prop', ['pause', 'yes']);
+    }, 13000);
+
+    setTimeout(function () {
+      check('subtitle-drop-observed', subtitleDropped);
+      check('blocked-event-observed', blockedSeen);
+      finish();
+    }, 18000);
+  }
+
+  // Announce availability, then start the Qt transport handshake.
+  if (typeof window.initShellComm === 'function') {
+    window.initShellComm();
+  }
+  window.chrome.webview.postMessage(JSON.stringify({ type: 3 }));
+})();
+</script>
+</body>
+</html>
