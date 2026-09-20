@@ -138,10 +138,23 @@
 
 > **⏳ Note:** If you have stremio-desktop v4.x.x installed make sure to uninstall it first. Otherwise there might be issues.
 
-2. 🚀 **Linux, macOS**
+2. 🍎 **macOS**
+- Native macOS build (WKWebView + AppKit + libmpv render API), see [docs/MACOS.md](docs/MACOS.md)
+
+```bash
+brew install mpv node cmake pkgconf
+cmake -S . -B build-macos -DCMAKE_BUILD_TYPE=Release
+cmake --build build-macos -j8
+open build-macos/src/macos/Stremio.app
+```
+
+- Distribution bundle: `node build/deploy_macos.js --zip` → `dist/mac/Stremio-<version>.zip`
+- Tests: `ctest --test-dir build-macos --output-on-failure`
+
+3. 🚀 **Linux**
 - Coming soon!
 
-> **⏳ Note:** Linux and Mac release will take considerable time as they need their own build with OS specific technologies
+> **⏳ Note:** Linux needs its own build with OS specific technologies
 
 ## 🔍 **Mpv Upscalers**
 

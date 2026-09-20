@@ -3,9 +3,18 @@ cmake_minimum_required(VERSION 3.16)
 project(stremio VERSION "5.0.22")
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(DEBUG_LOG "Allow debug logs" ON)
+
+if(APPLE)
+  # Native macOS port: WKWebView + AppKit + libmpv render API.
+  # The Windows build below is left untouched.
+  enable_testing()
+  add_subdirectory(src/macos)
+  return()
+endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # Locate MPV
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
